@@ -11,6 +11,6 @@ object EmptyEnv extends ListEnv {
 }
 class ConsEnv(v: Var, c: Closure, e: Environment) extends ListEnv {
   def apply(v1: Var) = if (v.name == v1.name) c else e(v1)
-  def domain = v :: e.domain
-  def range = c :: e.range
+  override def domain = v :: e.domain
+  override def range = c :: e.range
 }

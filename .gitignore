@@ -2,5 +2,6 @@
 #*#
 target
 project/target
+project/plugins.sbt
 project/project/
 .ensime*
