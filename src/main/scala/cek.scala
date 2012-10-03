@@ -1,5 +1,9 @@
 package dvh.cek
 
+import scala.math.pow
+
+import Ops._
+
 package object cek {
 
   def eval(ex: Expression): Value = {
@@ -16,8 +20,20 @@ package object cek {
       evalCek(ExpClosure(m, e1.bind(x, v)), k)
     case (v: ValClosure, Ar(ExpClosure(m, e1), k1)) =>
       evalCek(ExpClosure(m, e1), Fn(v, k1))
-//    case (v: ValClosure, Op(o, vs, c::cs, k1)) =>
-      
+    case (v: ValClosure, Op(o, vs, c::cs, k1)) =>
+      evalCek(c, Op(o, v::vs, cs, k1))
+    case (v: ValClosure, Op(o, vs, Nil, k1)) =>
+      evalCek(ValClosure(reduce(o, (v::vs).reverse), EmptyEnv), k1)
+  }
+  private def reduce(o: Ops, vs: List[ValClosure]): Value = (o, vs map { v => v.v }) match {
+      case (Add1, Con(n)::Nil) => Con(n+1)
+      case (Sub1, Con(n)::Nil) => Con(n-1)
+      case (IsZero, Con(0)::Nil) => Fun(Var('x), Fun(Var('y), Var('x)))
+      case (IsZero, Con(n)::Nil) => Fun(Var('x), Fun(Var('y), Var('y)))
+      case (Add, Con(m)::Con(n)::Nil) => Con(m+n)
+      case (Sub, Con(m)::Con(n)::Nil) => Con(m-n)
+      case (Mul, Con(m)::Con(n)::Nil) => Con(m*n)
+      case (Exp, Con(m)::Con(n)::Nil) => Con(pow(m,n))
   }
 
 }

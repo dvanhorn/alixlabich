@@ -4,7 +4,7 @@ trait Expression
 trait Value extends Expression
 case class Var(name: Symbol) extends Value
 case class Fun(param: Var, m: Expression) extends Value
-case class Con(value: Int) extends Value
+case class Con(value: Double) extends Value
 case class App(m: Expression, n: Expression) extends Expression
 object Ops extends Enumeration {
   type Ops = Value
