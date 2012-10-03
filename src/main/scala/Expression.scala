@@ -2,13 +2,12 @@ package dvh.cek
 
 trait Expression
 trait Value extends Expression
-trait Operation extends Expression
 case class Var(name: Symbol) extends Value
 case class Fun(param: Var, ex: Expression) extends Value
 case class Con(value: Int) extends Value
-case class App(ex1: Expression, ex2: Expression) extends Expression
-case class Add1(ex: Expression) extends Operation
-case class Sub1(ex: Expression) extends Operation
-case class IsZero(ex: Expression) extends Operation
-case class Add(ex1: Expression, ex2: Expression) extends Operation
-case class Sub(ex1: Expression, ex2: Expression) extends Operation
+case class App(m: Expression, n: Expression) extends Expression
+object Ops extends Enumeration {
+  type Ops = Value
+  val Add1, Sub1, IsZero, Add, Sub, Mul, Exp = Value
+}
+case class Oper(o: Ops.Value, ms: List[Expression]) extends Expression
