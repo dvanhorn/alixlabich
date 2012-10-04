@@ -6,6 +6,8 @@ import Ops._
 
 package object cek {
 
+  def parse(s: String): Expression = Con(0)
+
   def eval(ex: Expression): Value = {
     evalCek(ExpClosure(ex, EmptyEnv), EmptyKon)
   }
