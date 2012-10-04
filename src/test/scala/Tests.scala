@@ -67,7 +67,7 @@ class TestSuite extends FunSuite {
   }
 
   test("evaluating expressions") {
-//    assert(eval(parse("("+fun1+" "+pri1+")")) === Con(0))
+    assert(eval(parse("("+fun1+" "+pri1+")")) === Con(0))
   }
 
 }

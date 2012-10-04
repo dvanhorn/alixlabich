@@ -10,11 +10,12 @@ package object cek {
   def parse(s: String): Expression =
     ISWIMParser.parse(ISWIMParser.expr, s).getOrElse[Expression](Con(-1))
 
-  def eval(ex: Expression): Value = ex match {
-    case b: Con => b
+  def eval(ex: Expression): Value = {
+    println("Start: " + ex)
+    ex match {
     case v: Value => evalCek(ValClosure(v, EmptyEnv), EmptyKon)
     case x: Expression => evalCek(ExpClosure(ex, EmptyEnv), EmptyKon)
-  }
+  }}
 
   private def evalCek(c: Closure, k: Kontinuation): Value = { 
     println("eval("+c+", "+k+")")
@@ -33,6 +34,7 @@ package object cek {
       evalCek(c, Op(o, v::vs, cs, k1))
     case (v: ValClosure, Op(o, vs, Nil, k1)) =>
       evalCek(ValClosure(reduce(o, (v::vs).reverse), EmptyEnv), k1)
+    case (ValClosure(v, EmptyEnv), k) => v
     case _ => throw new RuntimeException("Bad code!")
   }}
   private def reduce(o: Ops, vs: List[ValClosure]): Value = (o, vs map { v => v.v }) match {
