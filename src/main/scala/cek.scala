@@ -10,34 +10,28 @@ package object cek {
   def parse(s: String): Expression =
     ISWIMParser.parse(ISWIMParser.expr, s).getOrElse[Expression](Con(-1))
 
-  def eval(ex: Expression): Value = {
-    println("Start: " + ex)
-    ex match {
-    case v: Value => evalCek(ValClosure(v, EmptyEnv), EmptyKon)
-    case x: Expression => evalCek(ExpClosure(ex, EmptyEnv), EmptyKon)
-  }}
+  def eval(m: Expression): Value = evalCek(Closure(m, EmptyEnv), EmptyKon)
 
-  private def evalCek(c: Closure, k: Kontinuation): Value = { 
-    println("eval("+c+", "+k+")")
-    (c, k) match {
-    case (ExpClosure(App(m, n), e), k) =>
-      evalCek(ExpClosure(m, e), Ar(ExpClosure(n, e), k))
-    case (ExpClosure(Oper(o, m::ms), e), k) =>
-      evalCek(ExpClosure(m, e), Op(o, Nil, ms map { n => ExpClosure(n, e) }, k))
-    case (ValClosure(Var(n), e), k) =>
+  private def evalCek(c: Closure, k: Kontinuation): Value = (c, k) match {
+    case (Closure(App(m, n), e), k) =>
+      evalCek(Closure(m, e), Ar(Closure(n, e), k))
+    case (Closure(Oper(o, m::ms), e), k) =>
+      evalCek(Closure(m, e), Op(o, Nil, ms map { n => Closure(n, e) }, k))
+    case (Closure(Var(n), e), k) =>
       evalCek(e(n), k)
-    case (v: ValClosure, Fn(ValClosure(Fun(x, m), e1), k1)) =>
-      evalCek(ExpClosure(m, e1.bind(x, v)), k)
-    case (v: ValClosure, Ar(ExpClosure(m, e1), k1)) =>
-      evalCek(ExpClosure(m, e1), Fn(v, k1))
-    case (v: ValClosure, Op(o, vs, c::cs, k1)) =>
-      evalCek(c, Op(o, v::vs, cs, k1))
-    case (v: ValClosure, Op(o, vs, Nil, k1)) =>
-      evalCek(ValClosure(reduce(o, (v::vs).reverse), EmptyEnv), k1)
-    case (ValClosure(v, EmptyEnv), k) => v
+    case (Closure(v: Value, e), Fn(Closure(Fun(x, m), e1), k1)) =>
+      evalCek(Closure(m, e1.bind(x, Closure(v, e))), k1)
+    case (Closure(v: Value, e), Ar(Closure(m, e1), k1)) =>
+      evalCek(Closure(m, e1), Fn(Closure(v, e), k1))
+    case (Closure(v: Value, e), Op(o, vs, c::cs, k1)) =>
+      evalCek(c, Op(o, Closure(v, e)::vs, cs, k1))
+    case (Closure(v: Value, e), Op(o, vs, Nil, k1)) =>
+      evalCek(Closure(reduce(o, (Closure(v, e)::vs).reverse), EmptyEnv), k1)
+    case (Closure(v: Value, EmptyEnv), EmptyKon) => v
     case _ => throw new RuntimeException("Bad code!")
-  }}
-  private def reduce(o: Ops, vs: List[ValClosure]): Value = (o, vs map { v => v.v }) match {
+  }
+
+  private def reduce(o: Ops, vs: List[Closure]): Value = (o, vs map { c => c.m }) match {
       case (Add1, Con(n)::Nil) => Con(n+1)
       case (Sub1, Con(n)::Nil) => Con(n-1)
       case (IsZero, Con(0)::Nil) => Fun(Var('x), Fun(Var('y), Var('x)))
