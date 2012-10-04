@@ -9,9 +9,9 @@ object ISWIMParser extends JavaTokenParsers {
 
   // entry point, generic expression
   def expr: Parser[Expression] = (
-    app ^^ { case app => app }
+    value ^^ { case value => println("matched value: " + value);value }
     | oper ^^ { case oper => oper }
-    | value ^^ { case value => value }
+    | app ^^ { case app => app }
   )
 
   def app: Parser[App] = (
@@ -20,7 +20,7 @@ object ISWIMParser extends JavaTokenParsers {
 
   def oper: Parser[Oper] = (
     "(" ~ primOp ~ rep1(expr) ~ ")" ^^ {
-      case "(" ~ primop ~ exprs ~ ")" => Oper(primop, exprs)
+      case "(" ~ primop ~ exprs ~ ")" => println("matched an oper");Oper(primop, exprs)
     }
   )
 
@@ -31,13 +31,13 @@ object ISWIMParser extends JavaTokenParsers {
   )
 
   def variable: Parser[Var] = (
-    ident ^^ { case ident => Var(Symbol(ident)) }
+    ident ^^ { case ident => println("matching vars succeeded!" + ident); Var(Symbol(ident)) }
   )
 
   // AMIRITE??
   def fun: Parser[Fun] = (
-    "(lambda " ~ variable ~ expr ~ ")" ^^ {
-      case "(lambda" ~ variable ~ expr ~ ")" => Fun(variable, expr)
+    "(lambda " ~ variable ~ "." ~ expr ~ ")" ^^ {
+      case "(lambda" ~ variable ~ "." ~ expr ~ ")" => println("MATCHING FUN YO"); Fun(variable, expr)
     }
   )
 

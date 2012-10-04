@@ -14,7 +14,7 @@ CEK Grammar:
 
   <function> ::= "(lambda " <variable> " . " <expr> ")"
 
-  <application> ::= "(" <expr> " " <expr> ")"
+  <application> ::= "(" <expr> " . " <expr> ")"
 
   <primitive> ::= Real Numbers
 
