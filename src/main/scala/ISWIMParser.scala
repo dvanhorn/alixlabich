@@ -36,7 +36,9 @@ object ISWIMParser extends JavaTokenParsers {
 
   // AMIRITE??
   def fun: Parser[Fun] = (
-    variable ~ expr ^^ { case variable ~ expr => Fun(variable, expr) }
+    "(lambda " ~ variable ~ expr ~ ")" ^^ {
+      case "(lambda" ~ variable ~ expr ~ ")" => Fun(variable, expr)
+    }
   )
 
   def con: Parser[Con] = (
