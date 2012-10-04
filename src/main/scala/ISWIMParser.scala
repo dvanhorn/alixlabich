@@ -3,7 +3,7 @@ package dvh.cek
 import scala.util.parsing.combinator._
 import dvh.cek.Ops._
 
-object Parser extends JavaTokenParsers {
+object ISWIMParser extends JavaTokenParsers {
 
   override def skipWhitespace = true
 
