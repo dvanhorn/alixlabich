@@ -24,6 +24,7 @@ package object cek {
       evalCek(c, Op(o, v::vs, cs, k1))
     case (v: ValClosure, Op(o, vs, Nil, k1)) =>
       evalCek(ValClosure(reduce(o, (v::vs).reverse), EmptyEnv), k1)
+    case _ => throw new RuntimeException("Bad code!")
   }
   private def reduce(o: Ops, vs: List[ValClosure]): Value = (o, vs map { v => v.v }) match {
       case (Add1, Con(n)::Nil) => Con(n+1)
@@ -34,6 +35,7 @@ package object cek {
       case (Sub, Con(m)::Con(n)::Nil) => Con(m-n)
       case (Mul, Con(m)::Con(n)::Nil) => Con(m*n)
       case (Exp, Con(m)::Con(n)::Nil) => Con(pow(m,n))
+      case _ => throw new RuntimeException("Bad primitive application!")
   }
 
 }
