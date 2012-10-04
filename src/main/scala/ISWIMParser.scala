@@ -8,7 +8,7 @@ object ISWIMParser extends JavaTokenParsers {
   override def skipWhitespace = true
 
   // entry point, generic expression
-  def expr: Parser[Expression] = ( value | oper | app )
+  def expr: Parser[Expression] = ( value | oper | app | variable )
 
   def app: Parser[App] = (
     "(" ~ expr ~ expr ~ ")" ^^ { case lparen ~ l ~ r ~ rparen => App(l, r) }
@@ -20,7 +20,7 @@ object ISWIMParser extends JavaTokenParsers {
     }
   )
 
-  def value: Parser[Value] = ( variable | fun | con )
+  def value: Parser[Value] = ( fun | con )
 
   def variable: Parser[Var] = (
     ident ^^ { x => Var(Symbol(x)) }
