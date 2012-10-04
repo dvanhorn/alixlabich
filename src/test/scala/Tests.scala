@@ -58,15 +58,16 @@ class TestSuite extends FunSuite {
     assert(parse(pop2) === Oper(Exp, List(Con(-3), Con(0))))
     assert(parse(pop3) === Oper(Sub, List(Con(42), Con(0))))
   }
-/*
+
   test("evaluating values") {
     assert(eval(parse(pri1)) === Con(0))
-    assert(eval(parse(var1)) === Var('x))
+    val ex = intercept[RuntimeException] { eval(parse(var1)) }
+    assert(ex.getMessage === "The variable 'x is not in the environment.")
     assert(eval(parse(fun3)) === Fun(Var('foo), Fun(Var('bar), Var('bar))))
   }
 
   test("evaluating expressions") {
-    assert(eval(parse("("+fun1+" "+pri1+")")) === Con(0))
+//    assert(eval(parse("("+fun1+" "+pri1+")")) === Con(0))
   }
-*/
+
 }
