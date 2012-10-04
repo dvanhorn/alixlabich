@@ -9,8 +9,8 @@ object ISWIMParser extends JavaTokenParsers {
 
   // entry point, generic expression
   def expr: Parser[Expression] = (value
-                                | app
-                                | oper)
+                                | oper
+                                | app)
 
   def app: Parser[App] = (
     "(" ~ expr ~ expr ~ ")" ^^ { case s ~ l ~ r ~ s1 => App(l, r) }
