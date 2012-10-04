@@ -2,11 +2,13 @@ package dvh.cek
 
 import scala.math.pow
 
+import cek._
 import Ops._
 
 package object cek {
 
-  def parse(s: String): Expression = Con(0)
+  def parse(s: String): Expression =
+    ISWIMParser.parse(ISWIMParser.expr, s).getOrElse[Expression](Con(-1))
 
   def eval(ex: Expression): Value = {
     evalCek(ExpClosure(ex, EmptyEnv), EmptyKon)
