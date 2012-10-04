@@ -8,23 +8,19 @@ object ISWIMParser extends JavaTokenParsers {
   override def skipWhitespace = true
 
   // entry point, generic expression
-  def expr: Parser[Expression] = (value
-                                | oper
-                                | app)
+  def expr: Parser[Expression] = ( value | oper | app )
 
   def app: Parser[App] = (
-    "(" ~ expr ~ expr ~ ")" ^^ { case s ~ l ~ r ~ s1 => App(l, r) }
+    "(" ~ expr ~ expr ~ ")" ^^ { case lparen ~ l ~ r ~ rparen => App(l, r) }
   )
 
   def oper: Parser[Oper] = (
     "(" ~ primOp ~ rep1(expr) ~ ")" ^^ {
-      case s ~ o ~ ms ~ s1 => Oper(o, ms)
+      case lparen ~ o ~ ms ~ rparen => Oper(o, ms)
     }
   )
 
-  def value: Parser[Value] = (variable
-                            | fun
-                            | con)
+  def value: Parser[Value] = ( variable | fun | con )
 
   def variable: Parser[Var] = (
     ident ^^ { x => Var(Symbol(x)) }
@@ -33,7 +29,7 @@ object ISWIMParser extends JavaTokenParsers {
   // AMIRITE??
   def fun: Parser[Fun] = (
     "(lambda " ~ variable ~ "." ~ expr ~ ")" ^^ {
-      case s ~ v ~ s1 ~ m ~ s2 => Fun(v, m)
+      case lambda ~ v ~ dot ~ m ~ rparen => Fun(v, m)
     }
   )
 
