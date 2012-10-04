@@ -43,6 +43,7 @@ object ISWIMParser extends JavaTokenParsers {
     | "-" ^^ { case x => Ops.Sub }
     | "+" ^^ { case x => Ops.Add }
     | "^" ^^ { case x => Ops.Exp }
+    | "*" ^^ { case x => Ops.Mul }
     // TODO(adam): make it so that this doesn't explode when isZero is fed
     // multiple exprs
     | "isZero" ^^ { case x => Ops.IsZero }
