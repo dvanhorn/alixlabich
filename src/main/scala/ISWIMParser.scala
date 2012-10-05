@@ -28,7 +28,7 @@ object ISWIMParser extends JavaTokenParsers {
 
   // AMIRITE??
   def fun: Parser[Fun] = (
-    "(lambda " ~ variable ~ "." ~ expr ~ ")" ^^ {
+    "(" ~ ("lambda" | "λ") ~ variable ~ "." ~ expr ~ ")" ^^ {
       case lambda ~ v ~ dot ~ m ~ rparen => Fun(v, m)
     }
   )
@@ -44,7 +44,7 @@ object ISWIMParser extends JavaTokenParsers {
     | "+" ^^ { case x => Ops.Add }
     | "^" ^^ { case x => Ops.Exp }
     | "*" ^^ { case x => Ops.Mul }
-    // TODO(adam): make it so that this doesn't explode when isZero is fed
+    // TODO(adam): make it so that this doesn't explode when isZero is fed      
     // multiple exprs
     | "isZero" ^^ { case x => Ops.IsZero }
   )

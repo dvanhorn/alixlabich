@@ -8,7 +8,7 @@ import Ops._
 package object cek {
 
   def parse(s: String): Expression =
-    ISWIMParser.parse(ISWIMParser.expr, s).getOrElse[Expression](Con(-1))
+    ISWIMParser.parse(ISWIMParser.expr, s).getOrElse(Con(-1))
 
   def eval(m: Expression): Value = evalCek(Closure(m, EmptyEnv), EmptyKon)
 
@@ -23,11 +23,11 @@ package object cek {
       evalCek(Closure(m, e1.bind(x, Closure(v, e))), k1)
     case (Closure(v: Value, e), Ar(Closure(m, e1), k1)) =>
       evalCek(Closure(m, e1), Fn(Closure(v, e), k1))
-    case (Closure(v: Value, e), Op(o, vs, c::cs, k1)) =>
-      evalCek(c, Op(o, Closure(v, e)::vs, cs, k1))
-    case (Closure(v: Value, e), Op(o, vs, Nil, k1)) =>
-      evalCek(Closure(reduce(o, (Closure(v, e)::vs).reverse), EmptyEnv), k1)
-    case (Closure(v: Value, EmptyEnv), EmptyKon) => v
+    case (Closure(v: Value, e), Op(o, vcs, c::cs, k1)) =>
+      evalCek(c, Op(o, Closure(v, e)::vcs, cs, k1))
+    case (Closure(v: Value, e), Op(o, vcs, Nil, k1)) =>
+      evalCek(Closure(reduce(o, (Closure(v, e)::vcs).reverse), EmptyEnv), k1)
+    case (Closure(v: Value, e), EmptyKon) => v
     case _ => throw new RuntimeException("Bad code!")
   }
 

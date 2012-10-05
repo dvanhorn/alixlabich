@@ -12,8 +12,12 @@ class TestSuite extends FunSuite {
   val var3: String = "z"
   val var4: String = "adamalix"
   val fun1: String = "(lambda x . x)"
-  val fun2: String = "(lambda x . (lambda y . x))"
-  val fun3: String = "(lambda foo . (lambda bar . bar))"
+  val fun2: String = "(λ x . (lambda y . x))"
+  val fun3: String = "(lambda foo . (λ bar . bar))"
+  val fun4: String = "(λ x . ((((λ p . (λ a . (λ x . ((p a) x)))) " +
+                               "(isZero x)) " +
+                              "(add1 x)) " +
+                             "0))"
   val pri1: String = "0"
   val pri2: String = "42"
   val pri3: String = "-3"
@@ -64,13 +68,18 @@ class TestSuite extends FunSuite {
     val ex = intercept[RuntimeException] { eval(parse(var1)) }
     assert(ex.getMessage === "The variable 'x is not in the environment.")
     assert(eval(parse(fun3)) === Fun(Var('foo), Fun(Var('bar), Var('bar))))
+    assert(eval(parse(fun4)) === parse(fun4))
   }
 
   test("evaluating expressions") {
     assert(eval(parse("("+fun1+" "+pri1+")")) === Con(0))
-    assert(eval(parse("(isZero ((lambda x . x) 0))")) === Fun(Var('x), Fun(Var('y), Var('x))))
+    assert(eval(parse("(isZero ((λ x . x) 0))")) === Fun(Var('x), Fun(Var('y), Var('x))))
     assert(eval(parse("(isZero (- 5 (+ 5 ((lambda x . x) 0))))")) === Fun(Var('x), Fun(Var('y), Var('x))))
-    assert(eval(parse("(isZero (* 42 ((lambda x . x) (- 6 5))))")) === Fun(Var('x), Fun(Var('y), Var('y))))
+    assert(eval(parse("(isZero (* 42 ((λ x . x) (- 6 5))))")) === Fun(Var('x), Fun(Var('y), Var('y))))
+    assert(eval(parse("("+fun4+" 0)")) === Con(1))
+    assert(eval(parse("("+fun4+" 1)")) === Con(0))
   }
+
+
 
 }
