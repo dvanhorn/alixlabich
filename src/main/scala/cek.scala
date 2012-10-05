@@ -17,8 +17,8 @@ package object cek {
       evalCek(Closure(m, e), Ar(Closure(n, e), k))
     case (Closure(Oper(o, m::ms), e), k) =>
       evalCek(Closure(m, e), Op(o, Nil, ms map { n => Closure(n, e) }, k))
-    case (Closure(Var(n), e), k) =>
-      evalCek(e(n), k)
+    case (Closure(v: Var, e), k) =>
+      evalCek(e(v), k)
     case (Closure(v: Value, e), Fn(Closure(Fun(x, m), e1), k1)) =>
       evalCek(Closure(m, e1.bind(x, Closure(v, e))), k1)
     case (Closure(v: Value, e), Ar(Closure(m, e1), k1)) =>
