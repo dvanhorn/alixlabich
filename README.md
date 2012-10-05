@@ -16,10 +16,8 @@ Setup:
 
 Build and compile:
 
-"""
-$: cd `git-root`/
-$: sbt
+> $: cd `git-root`/
+> $: sbt
 > clean
 > compile
 > test
-"""
