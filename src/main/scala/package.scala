@@ -1,9 +1,8 @@
-package dvh.cek
+package dvh
 
 import scala.math.pow
 
-import cek._
-import Ops._
+import cek.Ops._
 
 package object cek {
 
