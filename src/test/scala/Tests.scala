@@ -79,6 +79,8 @@ class TestSuite extends FunSuite {
     assert(eval(parse("(isZero (* 42 ((λ x . x) (- 6 5))))")) === Fun(Var('x), Fun(Var('y), Var('y))))
     assert(eval(parse("("+fun4+" 0)")) === Con(1))
     assert(eval(parse("("+fun4+" 1)")) === Con(0))
+    assert(eval(parse("("+fun5+" 0)")) === Con(1))
+    assert(eval(parse("("+fun5+" 1)")) === Con(0))
   }
 
 

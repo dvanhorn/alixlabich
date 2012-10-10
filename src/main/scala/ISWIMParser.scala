@@ -23,17 +23,15 @@ object ISWIMParser extends JavaTokenParsers {
   def value: Parser[Value] = fun | con
   
   def variable: Parser[Var] = ident ^^ { x => Var(Symbol(x)) }
-
-  private def curry(vs: List[Var], m: Expression) = vs match {
-    case v::vs => Fun(v, vs.foldRight(m)((y, n) => Fun(y, n)))
-    case Nil => throw new RuntimeException("Cannot create a function " +
-                                           "without any parameters.")
-  }
   
   // AMIRITE??
   def fun: Parser[Fun] =
     "(" ~ ("lambda" | "λ") ~ rep1(variable) ~ "." ~ expr ~ ")" ^^ {
-      case l ~ lam ~ vs ~ dot ~ m ~ r => curry(vs, m)
+      case l ~ lam ~ vs ~ dot ~ m ~ r => vs match {
+        case w::ws => Fun(w, ws.foldRight(m)((y, n) => Fun(y, n)))
+        case _ => throw new RuntimeException("Cannot create a function " +
+                                             "without any parameters.")
+      }
     }
   
   def con: Parser[Con] =
