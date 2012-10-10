@@ -7,46 +7,48 @@ object ISWIMParser extends JavaTokenParsers {
 
   override def skipWhitespace = true
 
-  // entry point, generic expression
-  def expr: Parser[Expression] = ( value | oper | app | variable )
+  def expr: Parser[Expression] = value | oper | variable | app
 
-  def app: Parser[App] = (
-    "(" ~ expr ~ expr ~ ")" ^^ { case lparen ~ l ~ r ~ rparen => App(l, r) }
-  )
+  def app: Parser[Expression] =
+    "(" ~ rep1(expr) ~ ")" ^^ {
+      case l ~ (m::ms) ~ r => ms.foldLeft(m)((a, n) => App(a, n))
+      case l ~ Nil ~ r => throw new RuntimeException("Won't occur.")
+    }
 
-  def oper: Parser[Oper] = (
+  def oper: Parser[Oper] =
     "(" ~ primOp ~ rep1(expr) ~ ")" ^^ {
       case lparen ~ o ~ ms ~ rparen => Oper(o, ms)
     }
-  )
+  
+  def value: Parser[Value] = fun | con
+  
+  def variable: Parser[Var] = ident ^^ { x => Var(Symbol(x)) }
 
-  def value: Parser[Value] = ( fun | con )
-
-  def variable: Parser[Var] = (
-    ident ^^ { x => Var(Symbol(x)) }
-  )
-
+  private def curry(vs: List[Var], m: Expression) = vs match {
+    case v::vs => Fun(v, vs.foldRight(m)((y, n) => Fun(y, n)))
+    case Nil => throw new RuntimeException("Cannot create a function " +
+                                           "without any parameters.")
+  }
+  
   // AMIRITE??
-  def fun: Parser[Fun] = (
-    "(" ~ ("lambda" | "λ") ~ variable ~ "." ~ expr ~ ")" ^^ {
-      case lambda ~ v ~ dot ~ m ~ rparen => Fun(v, m)
+  def fun: Parser[Fun] =
+    "(" ~ ("lambda" | "λ") ~ rep1(variable) ~ "." ~ expr ~ ")" ^^ {
+      case l ~ lam ~ vs ~ dot ~ m ~ r => curry(vs, m)
     }
-  )
-
-  def con: Parser[Con] = (
+  
+  def con: Parser[Con] =
     wholeNumber ^^ { case n => Con(Integer.parseInt(n)) }
-  )
 
+  // TODO(adam): make it so that this doesn't explode when isZero is fed      
+  // multiple exprs
   def primOp: Parser[Ops] = (
-    "add1" ^^ { case x => Ops.Add1}
-    | "sub1" ^^ { case x => Ops.Sub1 }
-    | "-" ^^ { case x => Ops.Sub }
-    | "+" ^^ { case x => Ops.Add }
-    | "^" ^^ { case x => Ops.Exp }
-    | "*" ^^ { case x => Ops.Mul }
-    // TODO(adam): make it so that this doesn't explode when isZero is fed      
-    // multiple exprs
-    | "isZero" ^^ { case x => Ops.IsZero }
+      "add1" ^^ { case x => Ops.Add1 }
+  |   "sub1" ^^ { case x => Ops.Sub1 }
+  |      "-" ^^ { case x => Ops.Sub }
+  |      "+" ^^ { case x => Ops.Add }
+  |      "^" ^^ { case x => Ops.Exp }
+  |      "*" ^^ { case x => Ops.Mul }
+  | "isZero" ^^ { case x => Ops.IsZero }
   )
 
 }
