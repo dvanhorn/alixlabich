@@ -2,7 +2,6 @@ package dvh.cek
 
 import org.scalatest.FunSuite
 
-import cek.{eval, parse}
 import Ops._
 
 class TestSuite extends FunSuite {
@@ -18,6 +17,7 @@ class TestSuite extends FunSuite {
                                "(isZero x)) " +
                               "(add1 x)) " +
                              "0))"
+  val fun5: String = "(λx.((λp a x.(p a x)) (isZero x) (add1 x) 0))"
   val pri1: String = "0"
   val pri2: String = "42"
   val pri3: String = "-3"
@@ -40,6 +40,7 @@ class TestSuite extends FunSuite {
     assert(parse(fun1) === Fun(Var('x), Var('x)))
     assert(parse(fun2) === Fun(Var('x), Fun(Var('y), Var('x))))
     assert(parse(fun3) === Fun(Var('foo), Fun(Var('bar), Var('bar))))
+    assert(parse(fun4) === parse(fun5))
   }
 
 
@@ -78,6 +79,8 @@ class TestSuite extends FunSuite {
     assert(eval(parse("(isZero (* 42 ((λ x . x) (- 6 5))))")) === Fun(Var('x), Fun(Var('y), Var('y))))
     assert(eval(parse("("+fun4+" 0)")) === Con(1))
     assert(eval(parse("("+fun4+" 1)")) === Con(0))
+    assert(eval(parse("("+fun5+" 0)")) === Con(1))
+    assert(eval(parse("("+fun5+" 1)")) === Con(0))
   }
 
 
