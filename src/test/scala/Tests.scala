@@ -28,6 +28,12 @@ class TestSuite extends FunSuite {
   val pop2: String = "(^ "+pri3+" "+pri1+")"
   val pop3: String = "(- "+pri2+" "+pri1+")"
 
+  test("location equality") {
+    assert(IntLocation(0) === IntLocation(0))
+    assert(IntLocation(1) === IntLocation(1))
+    assert(IntLocation(2) != IntLocation(3))
+  }
+
   test("parsing variables") {
     assert(parse(var1) === Var('x))
     assert(parse(var2) === Var('y))
@@ -81,6 +87,7 @@ class TestSuite extends FunSuite {
     assert(eval(parse("("+fun4+" 1)")) === Con(0))
     assert(eval(parse("("+fun5+" 0)")) === Con(1))
     assert(eval(parse("("+fun5+" 1)")) === Con(0))
+    assert(eval(parse("((λx.((λy.x) (set x (+ x 1)))) 12)")) === Con(13))
   }
 
 

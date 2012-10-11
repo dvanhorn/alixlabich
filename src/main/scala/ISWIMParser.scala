@@ -7,7 +7,10 @@ object ISWIMParser extends JavaTokenParsers {
 
   override def skipWhitespace = true
 
-  def expr: Parser[Expression] = value | oper | variable | app
+  def expr: Parser[Expression] = value | set | oper | variable | app
+
+  def set: Parser[Expression] =
+    "(set" ~ variable ~ expr ~ ")" ^^ { case l ~ x ~ m ~ r => Set(x, m) }
 
   def app: Parser[Expression] =
     "(" ~ rep1(expr) ~ ")" ^^ {

@@ -5,6 +5,9 @@ CEK Grammar:
   <expr> ::=  <prim-op>
            | <application>
            | <value>
+           | <set>
+
+  <set> ::= "(set " <variable> " " <expr> ")"
 
   <variable> ::= '([a-z] | [A-Z])+'
 

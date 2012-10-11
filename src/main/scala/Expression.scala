@@ -13,6 +13,9 @@ case class Oper(o: Ops.Value, ms: List[Expression]) extends Expression {
 case class Var(name: Symbol) extends Expression {
   override def toString = name.name
 }
+case class Set(x: Var, m: Expression) extends Expression {
+  override def toString = "(set "+x+" "+m+")"
+}
 
 trait Value extends Expression
 case class Fun(x: Var, m: Expression) extends Value {

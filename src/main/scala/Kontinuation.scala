@@ -10,4 +10,4 @@ case class Op(op: Ops,
               vs: List[Closure],
               cs: List[Closure],
               k: Kontinuation) extends Kontinuation
-case class Set(l: Location, k: Kontinuation)
+case class St(l: Location, k: Kontinuation) extends Kontinuation
