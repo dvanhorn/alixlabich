@@ -7,20 +7,37 @@ object ISWIMParser extends JavaTokenParsers {
 
   override def skipWhitespace = true
 
-  def expr: Parser[Expression] = value | set | oper | variable | app
+  def expr: Parser[Expression] = letrec | value | set | oper | variable | app
 
-  def set: Parser[Expression] =
-    "(set" ~ variable ~ expr ~ ")" ^^ { case l ~ x ~ m ~ r => Set(x, m) }
+  def oparen: Parser[String] = "(" | "[" | "{"
+  def cparen: Parser[String] = ")" | "]" | "}"
 
-  def app: Parser[Expression] =
-    "(" ~ rep1(expr) ~ ")" ^^ {
-      case l ~ (m::ms) ~ r => ms.foldLeft(m)((a, n) => App(a, n))
-      case l ~ Nil ~ r => throw new RuntimeException("Won't occur.")
+  def letrec: Parser[Expression] =
+    oparen ~ "letrec " ~ oparen ~ rep1(lrclause) ~ cparen ~ expr ~ cparen ^^ {
+      case _ ~ _ ~ _ ~ xvs ~ _ ~ m ~ _ => Letrec(xvs, m)
     }
 
+  def lrclause: Parser[(Var, Expression)] =
+    oparen ~ variable ~ expr ~ cparen ^^ {
+      case _ ~ vari ~ valu ~ _ => (vari, valu)
+    }
+
+  def set: Parser[Expression] =
+    oparen ~ "set" ~ variable ~ expr ~ cparen ^^ {
+      case l ~ x ~ m ~ r => Set(x, m)
+    }
+
+  def app: Parser[Expression] =
+    oparen ~ rep1(expr) ~ cparen ^^ {
+      case l ~ (m::ms) ~ r => appLeft(m, ms)
+      case l ~ Nil ~ r => throw new RuntimeException("Won't occur.")
+    }
+  private def appLeft(m: Expression, ms: List[Expression]): Expression =
+    ms.foldLeft(m)((a, n) => App(a, n))
+
   def oper: Parser[Oper] =
-    "(" ~ primOp ~ rep1(expr) ~ ")" ^^ {
-      case lparen ~ o ~ ms ~ rparen => Oper(o, ms)
+    oparen ~ "" ~ primOp ~ rep1(expr) ~ cparen ^^ {
+      case l ~ o ~ ms ~ r => Oper(o, ms)
     }
   
   def value: Parser[Value] = fun | con
@@ -29,12 +46,13 @@ object ISWIMParser extends JavaTokenParsers {
   
   // AMIRITE??
   def fun: Parser[Fun] =
-    "(" ~ ("lambda" | "λ") ~ rep1(variable) ~ "." ~ expr ~ ")" ^^ {
-      case l ~ lam ~ vs ~ dot ~ m ~ r => vs match {
-        case w::ws => Fun(w, ws.foldRight(m)((y, n) => Fun(y, n)))
-        case _ => throw new RuntimeException("Cannot create a function " +
+    oparen ~ ("lambda" | "λ") ~ rep1(variable) ~ "." ~ rep1(expr) ~ cparen ^^ {
+      case l ~ lam ~ vs ~ dot ~ (m::ms) ~ r => vs match {
+        case w::ws => Fun(w, ws.foldRight(appLeft(m, ms))((y, n) => Fun(y, n)))
+        case _ => throw new RuntimeException("Will not create a function " +
                                              "without any parameters.")
       }
+      case _ => throw new RuntimeException("Will not create a function with no body.")
     }
   
   def con: Parser[Con] =

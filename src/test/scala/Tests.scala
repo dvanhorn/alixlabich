@@ -17,7 +17,7 @@ class TestSuite extends FunSuite {
                                "(isZero x)) " +
                               "(add1 x)) " +
                              "0))"
-  val fun5: String = "(λx.((λp a x.(p a x)) (isZero x) (add1 x) 0))"
+  val fun5: String = "(λx.(λp a x.p a x) (isZero x) (add1 x) 0)"
   val pri1: String = "0"
   val pri2: String = "42"
   val pri3: String = "-3"
@@ -27,12 +27,6 @@ class TestSuite extends FunSuite {
   val pop1: String = "(add1 "+pri1+")"
   val pop2: String = "(^ "+pri3+" "+pri1+")"
   val pop3: String = "(- "+pri2+" "+pri1+")"
-
-  test("location equality") {
-    assert(IntLocation(0) === IntLocation(0))
-    assert(IntLocation(1) === IntLocation(1))
-    assert(IntLocation(2) != IntLocation(3))
-  }
 
   test("parsing variables") {
     assert(parse(var1) === Var('x))
@@ -87,9 +81,69 @@ class TestSuite extends FunSuite {
     assert(eval(parse("("+fun4+" 1)")) === Con(0))
     assert(eval(parse("("+fun5+" 0)")) === Con(1))
     assert(eval(parse("("+fun5+" 1)")) === Con(0))
+  }
+
+  test("variable scoping") {
+    assert(eval(parse("((λx.((λx.(+ x 1)) (+ x 1))) 0)")) === Con(2))
+    assert(eval(parse("((λx.((λx.((λx.(+ x 1)) (+ x 1))) (+ x 1))) 0)")) === Con(3))
+  }
+
+  test("evaluating booleans") {
+    assert(eval(parse("((λn.((λp t e.(p t e)) (isZero n) 42 43)) 0)")) ===
+           Con(42))
+    assert(eval(parse("((λn.((λp t e.(p t e)) (isZero n) 42 43)) 1)")) ===
+           Con(43))
+  }
+
+  test("evaluating set and letrec") {
+    val falsuh: String = "(λx.(λy.y))"
+    val tuhrue: String = "(λx.(λy.x))"
+    val ifthunk: String = "(λp t e.p t e 0)"
+    val and: String = "(λx.(λy.x y false))"
+    val or: String = "(λx.(λy.x true y))"
+    val not: String = "(λx y z.x z y)"
+    val fact: String =
+      "(λn.ifthunk (isZero n) "+
+                  "(λx.1) "+
+                  "(λx.(* n (fact (- n 1)))))"
+    val oddP: String =
+      "(λn.ifthunk (isZero n) "+
+                  "(λx.false) "+
+                  "(λx.not (evenP (- n 1))))"
+    val evenP: String =
+      "(λn.ifthunk (isZero n) "+
+                  "(λx.true) "+
+                  "(λx.not (oddP (- n 1))))"
+    val test: String =
+      "(letrec [(true "+tuhrue+")"+
+               "(false "+falsuh+")"+
+               "(ifthunk "+ifthunk+")"+
+               "(and "+and+")"+
+               "(or "+or+")"+
+               "(not "+not+")"+
+               "(fact "+fact+")"+
+               "(oddP "+oddP+")"+
+               "(evenP "+evenP+")] "+
+        "(ifthunk (and (oddP 3) (evenP 2)) "+
+                 "(λx.fact 3) "+
+                 "(λx.fact 4)))"
+    assert(eval(parse(test)) === Con(24))
     assert(eval(parse("((λx.((λy.x) (set x (+ x 1)))) 12)")) === Con(13))
+    assert(eval(parse("(letrec {(x 0) "+
+                               "(y (λx.x))} "+
+                        "(y x))")) === Con(0))
+    assert(eval(parse("(letrec {(x 0) "+
+                               "(y (λx.x)) "+
+                               "(z (+ x 3))} "+
+                        "(y z))")) === Con(3))
+    assert(eval(parse("(letrec {(x 4) "+
+                               "(if (λp t e.p t e 0)) "+
+                               "(fact (λn.(if (isZero n) "+
+                                             "(λx.1) "+
+                                             "(λx.(* n (fact (- n 1)))))))} "+
+                        "(fact x))")) === Con(24))
   }
 
 
-
+            
 }
