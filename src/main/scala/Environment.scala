@@ -1,18 +1,26 @@
 package dvh.cek
 
 trait Environment extends Function1[Var, Location] {
+  def bind(v: Var, l: Location): Environment
   def domain: List[Var] = Nil
   def range: List[Location] = Nil
 }
-trait ListEnv extends Environment
+trait ListEnv extends Environment {
+  def bind(v: Var, l: Location): ListEnv = ConsEnv(v, l, this)
+}
 case object EmptyEnv extends ListEnv {
   def apply(v1: Var) =
     throw new RuntimeException("The variable " + v1.name + " is not in the environment.")
-  override def toString = "[]"
+  override def toString = "∅"
 }
-case class ConsEnv(v: Var, l: Location, e: Environment) extends ListEnv {
+case class ConsEnv(v: Var, l: Location, e: ListEnv) extends ListEnv {
   def apply(v1: Var) = if (v.name == v1.name) l else e(v1)
-  override def domain = v :: e.domain
-  override def range = l :: e.range
-  override def toString = "[" + v + ", " + l + ", " + e + "]"
+  override def domain = v::e.domain
+  override def range = l::e.range
+  override def toString = toString(this, "ρ{")
+  def toString(e1: ListEnv, a: String): String = e1 match {
+    case ConsEnv(v1, l1, e2) =>
+      toString(e2, a+"("+v1+" -> "+l1+") ")
+    case EmptyEnv => a.substring(0, a.length-1) + "}"
+  }
 }
