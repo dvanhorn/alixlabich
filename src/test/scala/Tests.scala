@@ -89,19 +89,31 @@ class TestSuite extends FunSuite {
   }
 
   test("evaluating booleans") {
-    assert(eval(parse("((λn.((λp t e.(p t e)) (isZero n) 42 43)) 0)")) ===
-           Con(42))
-    assert(eval(parse("((λn.((λp t e.(p t e)) (isZero n) 42 43)) 1)")) ===
-           Con(43))
+    val falsuh: String = "(λx y.y)"
+    val tuhrue: String = "(λx y.x)"
+    val ifthunk: String = "(λp t e.p t e 0)"
+    val and: String = "(λx y.x y "+falsuh+")"
+    val or: String = "(λx y.x "+tuhrue+" y)"
+    val not: String = "(λx.x "+falsuh+" "+tuhrue+")"
+    assert(parse("(λp t e.p t e 0)") === Fun(Var('p), Fun(Var('t), Fun(Var('e), App(App(App(Var('p), Var('t)), Var('e)), Con(0))))))
+    assert(parse("(λx y.y)") === Fun(Var('x), Fun(Var('y), Var('y))))
+    assert(eval(parse("((λp t e.p t e 0) (λx y.x) (λx.0) (λx.1))")) === Con(0))
+    assert(eval(parse("("+ifthunk+" "+falsuh+" (λx.0) (λx.1))")) === Con(1))
+    assert(eval(parse("("+ifthunk+" ("+not+" "+falsuh+") (λx.0) (λx.1))")) === Con(0))
+  }
+
+  test("parsing letrec") {
+    assert(parse("(letrec [(x 0)] x)") === Letrec(List((Var('x), Con(0))), Var('x)))
+    assert(parse("(letrec [(x 0)(y 1)] x)") === Letrec(List((Var('x), Con(0)), (Var('y), Con(1))), Var('x)))
   }
 
   test("evaluating set and letrec") {
-    val falsuh: String = "(λx.(λy.y))"
-    val tuhrue: String = "(λx.(λy.x))"
+    val falsuh: String = "(λx y.y)"
+    val tuhrue: String = "(λx y.x)"
     val ifthunk: String = "(λp t e.p t e 0)"
-    val and: String = "(λx.(λy.x y false))"
-    val or: String = "(λx.(λy.x true y))"
-    val not: String = "(λx y z.x z y)"
+    val and: String = "(λx y.x y "+falsuh+")"
+    val or: String = "(λx y.x "+tuhrue+" y)"
+    val not: String = "(λx.x "+falsuh+" "+tuhrue+")"
     val fact: String =
       "(λn.ifthunk (isZero n) "+
                   "(λx.1) "+
@@ -109,11 +121,24 @@ class TestSuite extends FunSuite {
     val oddP: String =
       "(λn.ifthunk (isZero n) "+
                   "(λx.false) "+
-                  "(λx.not (evenP (- n 1))))"
+                  "(λx.evenP (- n 1)))"
     val evenP: String =
       "(λn.ifthunk (isZero n) "+
                   "(λx.true) "+
-                  "(λx.not (oddP (- n 1))))"
+                  "(λx.oddP (- n 1)))"
+    val mutual =
+      """
+(letrec [(true (λx y.x))
+         (false (λx y.y))
+         (ifthunk (λp t e.p t e 0))
+         (and (λx y.x y false))
+         (or (λx y.x true y))
+         (not (λx.x false true))
+         (evenP (λn.ifthunk (isZero n) (λx.true) (λx.oddP (- n 1))))
+         (oddP (λn.ifthunk (isZero n) (λx.false) (λx.evenP (- n 1))))]
+  (oddP 21))
+"""
+    assert(eval(parse(mutual)) === parse("(λx y.x)"))
     val test: String =
       "(letrec [(true "+tuhrue+")"+
                "(false "+falsuh+")"+
@@ -124,10 +149,11 @@ class TestSuite extends FunSuite {
                "(fact "+fact+")"+
                "(oddP "+oddP+")"+
                "(evenP "+evenP+")] "+
-        "(ifthunk (and (oddP 3) (evenP 2)) "+
-                 "(λx.fact 3) "+
-                 "(λx.fact 4)))"
-    assert(eval(parse(test)) === Con(24))
+        "(ifthunk (evenP 8) "+
+                 "(λx.fact 4) "+
+                 "(λx.fact 3)))"
+    assert(eval(parse("("+ifthunk+" ("+not+" ("+and+" "+tuhrue+" "+tuhrue+")) (λx.1) (λx.10))")) === parse("10"))
+    assert(eval(parse(test), true) === Con(24))
     assert(eval(parse("((λx.((λy.x) (set x (+ x 1)))) 12)")) === Con(13))
     assert(eval(parse("(letrec {(x 0) "+
                                "(y (λx.x))} "+
@@ -136,12 +162,6 @@ class TestSuite extends FunSuite {
                                "(y (λx.x)) "+
                                "(z (+ x 3))} "+
                         "(y z))")) === Con(3))
-    assert(eval(parse("(letrec {(x 4) "+
-                               "(if (λp t e.p t e 0)) "+
-                               "(fact (λn.(if (isZero n) "+
-                                             "(λx.1) "+
-                                             "(λx.(* n (fact (- n 1)))))))} "+
-                        "(fact x))")) === Con(24))
   }
 
 
