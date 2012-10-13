@@ -40,7 +40,7 @@ package object cek {
     case (Closure(Set(x, m), e), s, k) => // cesk8
       evalCesk(Closure(m, e), s, St(e(x), k), d)
     case (Closure(v: Value, e), s, St(l, k1)) => // cesk9
-      evalCesk(s(l), s.bind(l, ce), k1, d)
+      evalCesk(s(l), s.rebind(l, ce), k1, d)
     case (Closure(Letrec((x, m)::xms, n), e), s, k) => // al3
       val l = s.next
       val e1 = e.bind(x, l)
