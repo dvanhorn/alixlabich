@@ -153,7 +153,7 @@ class TestSuite extends FunSuite {
                  "(λx.fact 4) "+
                  "(λx.fact 3)))"
     assert(eval(parse("("+ifthunk+" ("+not+" ("+and+" "+tuhrue+" "+tuhrue+")) (λx.1) (λx.10))")) === parse("10"))
-    assert(eval(parse(test), true) === Con(24))
+    assert(eval(parse(test)) === Con(24))
     assert(eval(parse("((λx.((λy.x) (set x (+ x 1)))) 12)")) === Con(13))
     assert(eval(parse("(letrec {(x 0) "+
                                "(y (λx.x))} "+

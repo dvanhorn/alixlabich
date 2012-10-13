@@ -4,7 +4,6 @@ import Ops._
 
 trait Kontinuation {
   val sep = ", "
-//  def toString(m: Expression): String
   protected def toString(l: List[_]): String = toString(l, "(")
   protected def toString(l: List[_], a: String): String = l match {
     case x::xs => toString(xs, a+x+sep)
@@ -16,11 +15,9 @@ trait Kontinuation {
   }
 }
 case object EmptyKon extends Kontinuation {
-  def toString(m: Expression) = m.toString
   override def toString = "mt"
 }
 case class Fn(v: Closure, k: Kontinuation) extends Kontinuation {
-  def toString(m: Expression) = ""
   override def toString = "fn("+v+sep+"κ)"
 }
 case class Ar(c: Closure, k: Kontinuation) extends Kontinuation {
