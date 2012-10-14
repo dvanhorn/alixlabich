@@ -4,6 +4,7 @@ import Ops._
 
 trait Kontinuation {
   val sep = ", "
+  def ll: List[Location]
   protected def toString(l: List[_]): String = toString(l, "(")
   protected def toString(l: List[_], a: String): String = l match {
     case x::xs => toString(xs, a+x+sep)
@@ -16,12 +17,15 @@ trait Kontinuation {
 }
 case object EmptyKon extends Kontinuation {
   override def toString = "mt"
+  def ll = Nil
 }
 case class Fn(v: Closure, k: Kontinuation) extends Kontinuation {
   override def toString = "fn("+v+sep+"κ)"
+  def ll = v.ll:::k.ll
 }
 case class Ar(c: Closure, k: Kontinuation) extends Kontinuation {
   override def toString = "ar("+c+sep+"κ)"
+  def ll = c.ll:::k.ll
 }
 case class Op(op: Ops,
               vs: List[Closure],
@@ -29,9 +33,11 @@ case class Op(op: Ops,
               k: Kontinuation) extends Kontinuation {
   override def toString =
     "op("+Ops.toString(op)+", "+toString(vs)+sep+toString(cs)+", κ)"
+  def ll = vs.flatMap(_.ll):::cs.flatMap(_.ll):::k.ll
 }
 case class St(l: Location, k: Kontinuation) extends Kontinuation {
   override def toString = "st("+l+sep+"κ)"
+  def ll = l::k.ll
 }
 case class Lr(xs: List[Var],
               vvs: List[(Var, Value)],
@@ -41,4 +47,5 @@ case class Lr(xs: List[Var],
               k: Kontinuation) extends Kontinuation {
   override def toString =
     "lr("+toString(xs)+sep+toString(vvs)+sep+toString(ms)+sep+e+sep+n+sep+"κ)"
+  def ll = e.ll:::k.ll
 }

@@ -163,7 +163,5 @@ class TestSuite extends FunSuite {
                                "(z (+ x 3))} "+
                         "(y z))")) === Con(3))
   }
-
-
             
 }

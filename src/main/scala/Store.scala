@@ -1,12 +1,12 @@
 package dvh.cek
 
-trait Store extends Function1[Location, Closure] {
+trait Store extends Function1[Location, Option[Closure]] {
   def alloc(l: Location): Store
   def bind(l: Location, c: Closure): Store
   def rebind(l: Location, c: Closure): Store
   def next: Location
   def domain: List[Location] = Nil
-  def range: List[Option[Closure]] = Nil
+  def range: List[Closure] = Nil
 }
 trait ListStore extends Store {
   def alloc(l: Location): ListStore = bind(l, None)
@@ -17,7 +17,7 @@ trait ListStore extends Store {
 }
 case object EmptyStore extends ListStore {
   def apply(l: Location) =
-    throw new RuntimeException("No location l ("+l+") in this store.")
+    throw new RuntimeException("No location ("+l+") in this store.")
   def next = Location(0)
   def rebind(l: Location, c: Closure): ListStore =
     throw new RuntimeException("No location ("+l+") in this store " +
@@ -25,7 +25,12 @@ case object EmptyStore extends ListStore {
   override def toString = "mt"
 }
 case class ConsStore(l: Location, c: Option[Closure], s: ListStore) extends ListStore {
-  def apply(l1: Location) = if (l == l1) c.get else s(l1)
+  override def domain: List[Location] = l::s.domain
+  override def range: List[Closure] = c match {
+    case Some(ce) => ce::s.range
+    case _ => s.range
+  }
+  def apply(l1: Location) = if (l == l1) c else s(l1)
   def next = Location(scala.math.max(l.n+1, s.next.n))
   def rebind(l1: Location, c1: Closure) =
     if (l1 == l)
