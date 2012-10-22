@@ -45,7 +45,7 @@ case class Set(x: Var, m: Expression) extends Expression {
 trait Value extends Expression
 case class Fun(x: Var, m: Expression) extends Value {
   def prettyString = "(λ"+x+"."+m+")"
-  def av = m.fv.filter(_ != x)
+  def av = m.av.filter(_ != x)
   def fv = m.fv.filter(_ != x)
 }
 case class Con(value: Double) extends Value {
