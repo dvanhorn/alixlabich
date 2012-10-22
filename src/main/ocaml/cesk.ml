@@ -1,18 +1,27 @@
 (* expressions *)
 
-type expr = Con of int
-          | Var of string
+exception Runtime ;;
+
+type var = Var of string
+and value = Con of int | Fun of var * expr
+and expr = var = value = App of expr * expr
+                         | Oper of string * (expr list)
+                         | Set of var * expr
+                         | Letrec of ((var * expr) list) * expr
+
+(*type expr = Var of string
           | Fun of expr * expr
+          | Con of int
           | App of expr * expr
           | Oper of string * (expr list)
           | Set of expr * expr
-          | Letrec of ((expr * expr) list) * expr
+          | Letrec of ((var * expr) list) * expr*)
 
 let rec expr_equal m n = match m, n with
+| App (m, n), App (o, p) -> (expr_equal m o) && (expr_equal n p)
 | Con i, Con j -> i = j
 | Var s, Var t -> s = t
 | Fun (x, m), Fun (y, n) -> (expr_equal x y) && (expr_equal m n)
-| App (m, n), App (o, p) -> (expr_equal m o) && (expr_equal n p)
 | Oper (o1, l1), Oper (o2, l2) -> (o1 = o2) && (expr_list_equal l1 l2 true)
 | Set (x, m), Set (y, n) -> (expr_equal x y) && (expr_equal m n)
 | Letrec (l1, m), Letrec (l2, n) -> (letrec_clause_list_equal l1 l2 true) && (expr_equal m n)
@@ -67,5 +76,94 @@ let rec fv m = match m with
   let test = (fun x -> List.fold_right (fun y a -> a || (expr_equal x y)) xs false) in
   List.filter test ((flat_map (fun p -> match p with | (x, o) -> fv o) l []) @ (fv n)) ;;
 
-print_endline (string_of_expr (Letrec ([(Var "x", Fun (Var "x", Var "x"))], App (Var "x", Con 1))))
+type loc = Loc of int
 
+let loc_equal l1 l2 = match l1, l2 with | Loc a, Loc b -> a = b ;;
+
+type env = MtEnv
+         | ConsEnv of expr * loc * env
+
+let rec apply e x = match e with
+| MtEnv -> raise Runtime
+| ConsEnv (y, l, e1) when expr_equal x y -> l
+| ConsEnv (_, _, e1) -> apply e1 x ;;
+
+let bind e x l = ConsEnv (x, l, e) ;;
+
+let rec domain e = match e with
+| MtEnv -> []
+| ConsEnv (x, _, e1) -> x::(domain e1) ;;
+
+let rec range e = match e with
+| MtEnv -> []
+| ConsEnv (_, l, e1) -> l::(range e1) ;;
+
+let ll_env e = match e with
+| MtEnv -> []
+| (_ : env) -> range e ;;
+
+type closure = Closure of expr * env
+
+let ll_closure c = match c with | Closure (m, e) -> ll_env e ;;
+
+type store = MtStore
+           | ConsStore of loc * (closure option) * store
+
+let rec apply s l = match s with
+| ConsStore (l1, Some c, s1) when loc_equal l l1 -> c
+| ConsStore (l1, _, s1) -> apply s1 l
+| _ -> raise Runtime ;;
+
+let alloc s l = ConsStore (l, None, s) ;;
+
+let bind s l c = ConsStore (l, Some c, s) ;;
+
+let rec rebind s l c = match s with
+| MtStore -> MtStore
+| ConsStore (l1, _, s1) when l = l1 -> ConsStore (l1, Some c, s1)
+| ConsStore (l1, o, s1) -> ConsStore (l1, o, rebind s1 l c) ;;
+
+let next l = match l with | Loc n -> Loc (n + 1) ;;
+
+let next s = match s with
+| MtStore -> Loc 0
+| ConsStore (l1, _, _) -> next l1 ;;
+
+let rec domain s = match s with
+| MtStore -> []
+| ConsStore (l, _, s1) -> l::(domain s1) ;;
+
+let rec range s = match s with
+| MtStore -> []
+| ConsStore (_, Some c, e1) -> c::(range e1)
+| ConsStore (_, None, e1) -> range e1 ;;
+
+type kont = MtKont
+          | Fn of closure * kont
+          | Ar of closure * kont
+          | Op of string * (closure list) * (closure list) * kont
+          | St of loc * kont
+          | Lr of (expr list) * ((expr * expr) list) * (expr list) * env * expr * kont
+
+let rec ll_kont k = match k with
+| MtKont -> []
+| Fn (c, k) -> (ll_closure c) @ (ll_kont k)
+| Ar (c, k) -> (ll_closure c) @ (ll_kont k)
+| Op (_, vs, cs, k) -> (flat_map ll_closure vs []) @ (flat_map ll_closure cs []) @ (ll_kont k)
+| St (l, k) -> l::(ll_kont k)
+| Lr (_, _, _, e, _, k) -> (ll_env e) @ (ll_kont k) ;;
+
+let rec eval_cesk ce s k = match ce, s, k with
+(* cesk1 *)
+| Closure (App (m,  n), e), s, k ->
+  eval_cesk (Closure (m, e)) s (Ar (Closure (n, e), k))
+(* cesk2 *)
+| Closure (Oper (o, m::ms), e), s, k ->
+  eval_cesk (Closure (m, e)) s (Op (o, [], List.map (fun x -> Closure (x, e)) ms, k))
+(* cesk3 *)
+| Closure ((v : value), e), s, Fn (Closure (Fun (x, m), e1), k1) ->
+  let l = next s in eval_cesk (Closure (m, bind e1 x l)) (bind s l (Closure (v, e))) k1
+
+;;
+
+let eval m = eval_cesk (Closure (m, MtEnv)) MtStore MtKont ;;
