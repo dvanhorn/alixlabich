@@ -2,22 +2,16 @@
 
 exception Runtime ;;
 
-(*type var = Var of string
-and value = Con of int | Fun of var * expr
-and expr = var = value = App of expr * expr
-                         | Oper of string * (expr list)
-                         | Set of var * expr
-                         | Letrec of ((var * expr) list) * expr*)
-
 (* Expressions definition and functions *)
 
-type expr = Var of string
+type expr = Con of int
+          | Var of string
           | Fun of expr * expr
-          | Con of int
           | App of expr * expr
           | Oper of string * (expr list)
           | Set of expr * expr
-          | Letrec of ((expr * expr) list) * expr
+          | Letrec of ((expr * expr) list) * expr ;;
+
 
 (* expr_equal : expr expr -> bool *)
 let rec expr_equal m n = match m, n with
@@ -90,74 +84,76 @@ let loc_equal l1 l2 = match l1, l2 with | Loc a, Loc b -> a = b ;;
 type env = MtEnv
          | ConsEnv of expr * loc * env
 
-(* apply : env Var -> loc *)
-let rec apply e x = match e with
-| MtEnv -> raise Runtime
+exception Env_Lookup ;;
+(* env_lookup : env variable -> loc *)
+let rec env_lookup e x = match e with
+| MtEnv -> raise Env_Lookup
 | ConsEnv (y, l, e1) when expr_equal x y -> l
-| ConsEnv (_, _, e1) -> apply e1 x ;;
+| ConsEnv (_, _, e1) -> env_lookup e1 x ;;
 
-(* bind : env Var loc -> env *)
-let bind e x l = ConsEnv (x, l, e) ;;
+(* env_bind : env Var loc -> env *)
+let env_bind e x l = ConsEnv (x, l, e) ;;
 
-(* domain : env -> Var list *)
-let rec domain e = match e with
+(* env_domain : env -> Var list *)
+let rec env_domain e = match e with
 | MtEnv -> []
-| ConsEnv (x, _, e1) -> x::(domain e1) ;;
+| ConsEnv (x, _, e1) -> x::(env_domain e1) ;;
 
-(* range : env -> loc list *)
-let rec range e = match e with
+(* env_range : env -> loc list *)
+let rec env_range e = match e with
 | MtEnv -> []
-| ConsEnv (_, l, e1) -> l::(range e1) ;;
+| ConsEnv (_, l, e1) -> l::(env_range e1) ;;
 
-(* ll_env : env -> loc list *)
-let ll_env e = match e with
+(* env_ll : env -> loc list *)
+let env_ll e = match e with
 | MtEnv -> []
-| (_ : env) -> range e ;;
+| (_ : env) -> env_range e ;;
 
 type closure = Closure of expr * env
 
-(* ll_closure : closure -> loc list *)
-let ll_closure c = match c with | Closure (m, e) -> ll_env e ;;
+(* closure_ll : closure -> loc list *)
+let closure_ll c = match c with | Closure (m, e) -> env_ll e ;;
 
 type store = MtStore
            | ConsStore of loc * (closure option) * store
 
-(* apply : store loc -> closure *)
-let rec apply s l = match s with
+exception Store_Lookup ;;
+(* store_lookup : store loc -> closure *)
+let rec store_lookup s l = match s with
 | ConsStore (l1, Some c, s1) when loc_equal l l1 -> c
-| ConsStore (l1, _, s1) -> apply s1 l
-| _ -> raise Runtime ;;
+| ConsStore (l1, _, s1) -> store_lookup s1 l
+| _ -> raise Store_Lookup ;;
 
-(* alloc : store loc -> store *)
-let alloc s l = ConsStore (l, None, s) ;;
+(* store_alloc : store loc -> store *)
+let store_alloc s l = ConsStore (l, None, s) ;;
 
-(* bind : store loc closure -> store *)
-let bind s l c = ConsStore (l, Some c, s) ;;
+(* store_bind : store loc closure -> store *)
+let store_bind s l c = ConsStore (l, Some c, s) ;;
 
-(* rebind : store loc closure -> store *)
-let rec rebind s l c = match s with
+(* store_rebind : store loc closure -> store *)
+let rec store_rebind s l c = match s with
 | MtStore -> MtStore
 | ConsStore (l1, _, s1) when l = l1 -> ConsStore (l1, Some c, s1)
-| ConsStore (l1, o, s1) -> ConsStore (l1, o, rebind s1 l c) ;;
+| ConsStore (l1, o, s1) -> ConsStore (l1, o, store_rebind s1 l c) ;;
 
 (* next : loc -> loc *)
 let next l = match l with | Loc n -> Loc (n + 1) ;;
 
-(* next : store -> loc *)
-let next s = match s with
+(* next_loc : store -> loc *)
+let next_loc s = match s with
 | MtStore -> Loc 0
 | ConsStore (l1, _, _) -> next l1 ;;
 
-(* domain : store -> loc list *)
-let rec domain s = match s with
+(* store_domain : store -> loc list *)
+let rec store_domain s = match s with
 | MtStore -> []
-| ConsStore (l, _, s1) -> l::(domain s1) ;;
+| ConsStore (l, _, s1) -> l::(store_domain s1) ;;
 
 (* range : store -> closure list *)
-let rec range s = match s with
+let rec store_range s = match s with
 | MtStore -> []
-| ConsStore (_, Some c, e1) -> c::(range e1)
-| ConsStore (_, None, e1) -> range e1 ;;
+| ConsStore (_, Some c, e1) -> c::(store_range e1)
+| ConsStore (_, None, e1) -> store_range e1 ;;
 
 type kont = MtKont
           | Fn of closure * kont
@@ -166,14 +162,27 @@ type kont = MtKont
           | St of loc * kont
           | Lr of (expr list) * ((expr * expr) list) * (expr list) * env * expr * kont
 
-(* ll_kont : kont -> loc list *)
-let rec ll_kont k = match k with
+(* kont_ll : kont -> loc list *)
+let rec kont_ll k = match k with
 | MtKont -> []
-| Fn (c, k) -> (ll_closure c) @ (ll_kont k)
-| Ar (c, k) -> (ll_closure c) @ (ll_kont k)
-| Op (_, vs, cs, k) -> (flat_map ll_closure vs []) @ (flat_map ll_closure cs []) @ (ll_kont k)
-| St (l, k) -> l::(ll_kont k)
-| Lr (_, _, _, e, _, k) -> (ll_env e) @ (ll_kont k) ;;
+| Fn (c, k) -> (closure_ll c) @ (kont_ll k)
+| Ar (c, k) -> (closure_ll c) @ (kont_ll k)
+| Op (_, vs, cs, k) -> (flat_map closure_ll vs []) @ (flat_map closure_ll cs []) @ (kont_ll k)
+| St (l, k) -> l::(kont_ll k)
+| Lr (_, _, _, e, _, k) -> (env_ll e) @ (kont_ll k) ;;
+
+exception Reduction ;;
+let reduce o vs = match o, vs with
+| "add1", [Closure (Con i, _)] -> Con (i+1)
+| "sub1", [Closure (Con i, _)] -> Con (i-1)
+| "isZero", [Closure (Con 0, _)] -> Fun (Var "x", Fun (Var "y", Var "x"))
+| "isZero", [Closure (Con _, _)] -> Fun (Var "x", Fun (Var "y", Var "y"))
+| "+", [Closure (Con i, _); Closure (Con j, _)] -> Con (i+j)
+| "-", [Closure (Con i, _); Closure (Con j, _)] -> Con (i-j)
+| "*", [Closure (Con i, _); Closure (Con j, _)] -> Con (i*j)
+| "/", [Closure (Con i, _); Closure (Con j, _)] -> Con (i/j)
+(*| "^", [Closure (Con i, _); Closure (Con j, _)] -> Con (i**j)*)
+| _ -> raise Reduction ;;
 
 let rec eval_cesk ce s k = match ce, s, k with
 (* cesk1 *)
@@ -183,9 +192,46 @@ let rec eval_cesk ce s k = match ce, s, k with
 | Closure (Oper (o, m::ms), e), s, k ->
   eval_cesk (Closure (m, e)) s (Op (o, [], List.map (fun x -> Closure (x, e)) ms, k))
 (* cesk3 *)
-(*| Closure ((v : value), e), s, Fn (Closure (Fun (x, m), e1), k1) ->
-  let l = next s in eval_cesk (Closure (m, bind e1 x l)) (bind s l (Closure (v, e))) k1
-*)
-;;
+| Closure (v, e), s, Fn (Closure (Fun (x, m), e1), k1) ->
+  let l = next_loc s in eval_cesk (Closure (m, env_bind e1 x l)) (store_bind s l (Closure (v, e))) k1
+(* cesk4 *)
+| Closure (v, e), s, Ar (Closure (m, e1), k1) ->
+  eval_cesk (Closure (m, e1)) s (Fn (Closure (v, e), k1))
+(* cesk5 *)
+| Closure (v, e), s, Op (o, vcs, [], k1) ->
+  eval_cesk (Closure (reduce o (List.rev ((Closure (v, e))::vcs)), MtEnv)) s k1
+(* cesk6 *)
+| Closure (v, e), s, Op (o, vcs, c::cs, k1) ->
+  eval_cesk c s (Op (o, (Closure (v, e))::vcs, cs, k1))
+(* cesk7 *)
+| Closure (Var y, e), s, k ->
+  eval_cesk (store_lookup s (env_lookup e (Var y))) s k
+(* cesk8 *)
+| Closure (Set (x, m), e), s, k ->
+  eval_cesk (Closure (m, e)) s (St (env_lookup e x, k))
+(* cesk9 *)
+| Closure (v, e), s, St (l, k1) -> 
+  eval_cesk (store_lookup s l) (store_rebind s l ce) k1
+(* al3 *)
+| Closure (Letrec ((x, m)::xms, n), e), s, k ->
+  let l = next_loc s in
+  let e1 = env_bind e x l in
+  eval_cesk (Closure (m, e1)) (store_alloc s l) (Lr (x::(List.map (fun (a,b) -> a) xms), [], (List.map (fun (a,b) -> b) xms), e1, n, k))
+| Closure (v, e), s, Lr (x::y::xs, vvs, m::ms, e1, n, k1) ->
+  let l = next_loc s in
+  let e2 = env_bind e1 y l in
+  eval_cesk (Closure (m, e2)) (store_alloc (store_rebind s (env_lookup e x) (Closure (v, e2))) l) (Lr (y::xs, (x, v)::vvs, ms, e2, n, k1))
+| Closure (v, e), s, Lr ([x], vvs, [], e1, n, k1) ->
+  eval_cesk (Closure (n, e1)) (List.fold_right (fun (x, m) a -> (store_rebind a (env_lookup e1 x) (Closure (m, e1)))) (List.rev ((x, v)::vvs)) s) k1
+| Closure (v, e), s, MtKont -> v
+| _ -> raise Runtime ;;
+
 
 let eval m = eval_cesk (Closure (m, MtEnv)) MtStore MtKont ;;
+
+print_endline (string_of_expr (eval (Fun (Var "x", Fun (Var "y", Var "x"))))) ;; (* => (λxy.x) *)
+print_endline (string_of_expr (eval (Oper ("add1", [Con 0])))) ;; (* => 1 *)
+print_endline (string_of_expr (eval (Letrec ([(Var "x", Con 0)], Var "x")))) ;; (* => 0 *)
+print_endline (string_of_expr (eval (Letrec ([(Var "x", Con 0);(Var "y", Con 1)], Var "y")))) ;; (* => 1 *)
+print_endline (string_of_expr (eval (Oper ("add1", [Oper ("+", [Con 0;Con 1])])))) ;; (* => 2 *)
+(* print_endline (string_of_expr (eval (Letrec ([(Var "x", Con 0)], Oper ("add1", [Var "x"]))))) ;;  => 0 *)
