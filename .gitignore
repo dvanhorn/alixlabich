@@ -1,5 +1,8 @@
 *~
+.\#*
 \#*\#
+_build
+*.native
 target
 project/target
 project/plugins.sbt
